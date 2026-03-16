@@ -1,77 +1,64 @@
 #include "kernel/types.h"
 #include "user/user.h"
 
-// parent write into pipe for 2 children
-void p_pipe_write(int p1, int p2, char *c, int size_c) {
-    write(p1, c, size_c);
-    write(p2, c, size_c);
-}
+void child(int read_pipe, int write_pipe) {
+    char msg[4];
+    read(read_pipe, msg, 4);
+    if (strcmp(msg, "ping") != 0) exit(1);
 
-// hold the process until both children write wait_msg into their pipes
-void wait_pipe_read(int p1, int p2, char *c, int size_c, char *wait_msg) {
-    read(p1, c, sizeof(c));
-    if (strcmp(c, wait_msg)) exit(1);
-    read(p2, c, sizeof(c));
-    if (strcmp(c, wait_msg)) exit(1);
+    printf("%d: pong\n", getpid());
+    write(write_pipe, "ACK", 4);
+    exit(0);
 }
 
 int main(int argc, char *argv[]) {
-    int ppid = getpid();
+    int p_to_c1[2], c1_to_p[2];
+    int p_to_c2[2], c2_to_p[2];
 
-    int c1_pipe[2], c2_pipe[2];
-    pipe(c1_pipe);
-    pipe(c2_pipe);
-    char ping[10] = "ping";
-    char ack[10] = "ACK";
-    char read_msg[10];
+    pipe(p_to_c1); pipe(c1_to_p);
+    pipe(p_to_c2); pipe(c2_to_p);
 
-    int c1_pid = fork();
-    int c2_pid;
+    int c1 = fork();
+    if (c1 == 0) {
+        // close unneeded pipes
+        close(p_to_c1[1]);
+        close(c1_to_p[0]);
 
-    int *pipe[2] = {0, 0};
+        close(p_to_c2[0]); close(p_to_c2[1]);
+        close(c2_to_p[0]); close(c2_to_p[1]);
+
+        child(p_to_c1[0], c1_to_p[1]);
+    }
+
+    int c2 = fork();
+    if (c2 == 0) {
+        // close unneeded pipes
+        close(p_to_c2[1]);
+        close(c2_to_p[0]);
+
+        close(p_to_c1[0]); close(p_to_c1[1]);
+        close(c1_to_p[0]); close(c1_to_p[1]);
+        
+        child(p_to_c2[0], c2_to_p[1]);
+    }
     
-    // only fork in the parent process
-    if (ppid == getpid()) {
-        c2_pid = fork();
-        // assign pipes based on child
-        if (ppid != getpid()) {
-            pipe[0] = &c2_pipe[0];
-            pipe[1] = &c2_pipe[1];
-        }
-    } else {
-        // assign pipes based on child
-        pipe[0] = &c1_pipe[0];
-        pipe[1] = &c1_pipe[1];
-    }
+    // children will exit in the function and not exec this code
 
-    if (getpid() == ppid) {
-        // send ping to the children
-        p_pipe_write(
-            c1_pipe[1],
-            c2_pipe[1],
-            ping,
-            sizeof(ping));
-        sleep(1);
-        // wait for both ack responses
-        wait_pipe_read(
-            c1_pipe[0],
-            c2_pipe[0],
-            read_msg,
-            sizeof(read_msg),
-            ack);
-        wait(&c1_pid);
-        wait(&c2_pid);
-    } else {
-        // wait for ping
-        read(*pipe[0], read_msg, sizeof(read_msg));
-        if (strcmp(read_msg, ping)) exit(1);        // exit if wrong response
-        printf("%d: pong\n", getpid());
-        write(*pipe[1], ack, sizeof(ack));
-        if (getpid() != c1_pid) {
-            // let the first child print first (generally)
-            wait(&c1_pid);
-        }
-        // write(2, "child\n", 8);
-    }
+    // close unneeded pipes
+    close(p_to_c1[0]); close(p_to_c2[0]);
+    close(c1_to_p[1]); close(c2_to_p[1]);
+
+    write(p_to_c1[1], "ping", 5);
+    write(p_to_c2[1], "ping", 5);
+
+    char ack[4];
+    read(c1_to_p[0], ack, 3);
+    if (strcmp(ack, "ACK")) exit(1);
+    read(c2_to_p[0], ack, 3);
+    if (strcmp(ack, "ACK")) exit(1);
+
+    // wait for both children before exiting
+    wait(0);
+    wait(0);
     exit(0);
 }
