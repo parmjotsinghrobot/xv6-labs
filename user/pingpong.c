@@ -38,10 +38,10 @@ int main(int argc, char *argv[]) {
 
         close(p_to_c1[0]); close(p_to_c1[1]);
         close(c1_to_p[0]); close(c1_to_p[1]);
-        
+
         child(p_to_c2[0], c2_to_p[1]);
     }
-    
+
     // children will exit in the function and not exec this code
 
     // close unneeded pipes
