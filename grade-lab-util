@@ -5,101 +5,171 @@ from gradelib import *
 
 r = Runner(save("xv6.out"))
 
-@test(5, "sleep, no arguments")
-def test_sleep_no_args():
+@test(1, "sleep")
+def test_sleep():
     r.run_qemu(shell_script([
-        'sleep'
+        'sleep 10'
     ]))
     r.match(no=["exec .* failed", "$ sleep\n$"])
 
-@test(5, "sleep, returns")
-def test_sleep_no_args():
+@test(6, "pingpong")
+def test_pingpong_children():
     r.run_qemu(shell_script([
-        'sleep',
+        'pingpong',
         'echo OK'
     ]))
-    r.match('^OK$', no=["exec .* failed", "$ sleep\n$"])
+    r.match('^OK$')
 
-@test(10, "sleep, makes syscall")
-def test_sleep():
+@test(8, "findppid, depth 5")
+def test_findppid_5():
     r.run_qemu(shell_script([
-        'sleep 10',
-        'echo FAIL'
-    ]), stop_breakpoint('sys_sleep'))
-    r.match('\\$ sleep 10', no=['FAIL'])
-
-@test(20, "pingpong")
-def test_pingpong():
-    r.run_qemu(shell_script([
-        'pingpong', 'echo OK'
+        'findppid 5',
+        'echo OK'
     ]))
-    r.match('^\\d+: received ping$', '^\\d+: received pong$', '^OK$')
+    args = [
+        r'^.*y ID is \d+, my parent ID is \d+$',
+        r'^.*y ID is \d+, my parent ID is \d+$',
+        r'^.*y ID is \d+, my parent ID is \d+$',
+        r'^.*y ID is \d+, my parent ID is \d+$',
+        r'^.*y ID is \d+, my parent ID is \d+$',
+        r'^.*y ID is \d+, my parent ID is \d+$',
+        r'^OK$'
+    ]
+    r.match(*args)
 
-@test(20, "primes")
-def test_primes():
+@test(6, "primes, 20")
+def test_primes_20():
     r.run_qemu(shell_script([
-        'primes', 'echo OK'
+        'primes 20',
+        'echo OK'
     ]))
-    args = ['prime %d' % i for i in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269]]
+    args = ['.*%d' % i for i in [2, 3, 5, 7, 11, 13, 17, 19]]
     args.append('^OK$')
     r.match(*args)
 
-@test(10, "find, in current directory")
-def test_find_curdir():
-    fn = random_str()
+@test(1, "primes, 50")
+def test_primes_50():
     r.run_qemu(shell_script([
-        'echo > %s' % fn,
-        'find . %s' % fn
+        'primes 50',
+        'echo OK'
     ]))
-    r.match('./%s' % fn)
-    r.match(no=["./README", "README"])
+    args = ['.*%d' % i for i in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47]]
+    args.append('^OK$')
+    r.match(*args)
 
-@test(10, "find, in sub-directory")
-def test_find_curdir():
-    dd = random_str()
-    fn = random_str()
+@test(1, "primes, 200")
+def test_primes_200():
     r.run_qemu(shell_script([
-        'echo > %s' % fn,
-        'mkdir %s' % dd,
-        'echo > %s/%s' % (dd, fn),
-        'find %s %s' % (dd, fn)
+        'primes 200',
+        'echo OK'
     ]))
-    r.match('%s/%s' % (dd, fn))
-    r.match(no=['./%s' % fn])
+    args = ['.*%d' % i for i in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199]]
+    args.append('^OK$')
+    r.match(*args)
 
-@test(10, "find, recursive")
-def test_find_recursive():
-    needle = random_str()
-    dirs = [random_str() for _ in range(3)]
+@test(8, "primes_sum, 20")
+def test_primes_sum_20():
     r.run_qemu(shell_script([
-        'mkdir %s' % dirs[0],
-        'echo > %s/%s' % (dirs[0], needle),
-        'mkdir %s/%s' % (dirs[0], dirs[1]),
-        'echo > %s/%s/%s' % (dirs[0], dirs[1], needle),
-        'mkdir %s' % dirs[2],
-        'echo > %s/%s' % (dirs[2], needle),
-        'find . %s' % needle
+        'primes_sum 30',
+        'echo OK'
     ]))
-    r.match('./%s/%s' % (dirs[0], needle),
-            './%s/%s/%s' % (dirs[0], dirs[1], needle),
-            './%s/%s' % (dirs[2], needle))
+    args = ['%d' % i for i in [5, 8, 12, 18, 24, 30, 36]]
+    args.append('^OK$')
+    r.match(*args)
 
-@test(10, "xargs")
-def test_xargs():
+@test(1, "primes_sum, 30")
+def test_primes_sum_30():
     r.run_qemu(shell_script([
-        'sh < xargstest.sh',
+        'primes_sum 30',
+        'echo OK'
+    ]))
+    args = ['%d' % i for i in [5, 8, 12, 18, 24, 30, 36, 42, 52]]
+    args.append('^OK$')
+    r.match(*args)
+
+@test(1, "primes_sum, 200")
+def test_primes_sum_200():
+    r.run_qemu(shell_script([
+        'primes_sum 200',
+        'echo OK'
+    ]))
+    args = ['%d' % i for i in [5,8,12,18,24,30,36,42,52,60,68,78,84,90,100,112,120,128,138,144,152,162,172,186,198,204,210,216,222,240,258,268,276,288,300,308,320,330,340,352,360,372,384,390,396]]
+    args.append('^OK$')
+    r.match(*args)
+
+# ──────────────────────────────────────────────────────────────
+# Part 2 — Priority Scheduler
+# All tests delegate to user/schedtest.c, must add $U/_schedtest to UPROGS in Makefile.
+# Run individually with:  ./grade-lab-util schedule
+# ──────────────────────────────────────────────────────────────
+
+# ── Test 1: getpinfo() ────────────────────────────────────────
+# T3: getpinfo(&st) returns 0 (valid pointer)
+# T4: getpinfo(0)   returns -1 (null pointer)
+# T5: new process has default priority 1
+
+@test(10, "schedule, getpinfo")
+def test_schedule_getpinfo():
+    r.run_qemu(shell_script([
+        'schedtest',
         'echo DONE',
-    ], 'DONE'))
-    matches = re.findall("hello", r.qemu.output)
-    assert_equal(len(matches), 3, "Number of appearances of 'hello'")
+    ]))
+    r.match(
+        r'^PASS: T3',
+        r'^PASS: T4',
+        r'^PASS: T5',
+        r'^DONE$',
+        no=['exec schedtest failed', 'panic']
+    )
 
-@test(9, "xargs, multi-line echo")
-def test_xargs_multiline():
-    r.run_qemu(shell_script(['(echo 1 ; echo 2) | xargs echo']))
-    r.match('^1$', '^2$')
+# ── Test 2: setpri() ──────────────────────────────────────────
+# T1a: setpri(1) returns 0
+# T1b: setpri(2) returns 0
+# T2a: setpri(0)  returns -1
+# T2b: setpri(3)  returns -1
+# T2c: setpri(-1) returns -1
+# T8a: setpri(2) is reflected in getpinfo output
+# T8b: setpri(1) lowers priority back to 1
 
-@test(1, "time")
-def test_time():
-    check_time()
-    
+@test(10, "schedule, setpri")
+def test_schedule_setpri():
+    r.run_qemu(shell_script([
+        'schedtest',
+        'echo DONE',
+    ]))
+    r.match(
+        r'^PASS: T1a',
+        r'^PASS: T1b',
+        r'^PASS: T2a',
+        r'^PASS: T2b',
+        r'^PASS: T2c',
+        r'^PASS: T8a',
+        r'^PASS: T8b',
+        r'^DONE$',
+        no=['exec schedtest failed', 'panic',
+            'FAIL: T1', 'FAIL: T2', 'FAIL: T8']
+    )
+
+# ── Test 3: scheduler priority order and tick accounting ──────
+# T6: high-priority child (pri=2) finishes before low-priority child (pri=1)
+# T7a: ticks[2] increases when process runs at pri=2
+# T7b: ticks[1] does not increase while process is at pri=2
+
+@test(15, "schedule, priority scheduler")
+def test_schedule_priority():
+    r.run_qemu(shell_script([
+        'schedtest',
+        'echo DONE',
+    ]), timeout=45)
+    r.match(
+        r'^PASS: T6',
+        r'^PASS: T7a',
+        r'^PASS: T7b',
+        r'^DONE$',
+        no=['exec schedtest failed', 'panic',
+            'FAIL: T6', 'FAIL: T7']
+    )
+
+# ──────────────────────────────────────────────────────────────
+
 run_tests()
