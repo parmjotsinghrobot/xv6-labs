@@ -1,9 +1,6 @@
 #include "kernel/types.h"
 #include "user/user.h"
 
-void child(int chain) {
-}
-
 int main(int argc, char *argv[]) {
     // exit if there are no arguments
     if (argc == 1) {
