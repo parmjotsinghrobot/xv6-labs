@@ -33,7 +33,7 @@ void child(int read_pipe, int n) {
 
 int main(int argc, char *argv[]) {
     // exit if there are no arguments
-    if (argc == 1) {
+    if (argc != 2) {
         write(2,
             "primes: missing operand\n"
             "Try 'primes n' with n being a positive integer > 2.\n", 77);
