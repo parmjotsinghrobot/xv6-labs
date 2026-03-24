@@ -190,6 +190,7 @@ UPROGS=\
 	$U/_mkdir\
 	$U/_pingpong\
 	$U/_primes\
+	$U/_primes_sum\
 	$U/_rm\
 	$U/_sh\
 	$U/_sleep\
