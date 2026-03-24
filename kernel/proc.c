@@ -124,6 +124,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->priority = 1;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -516,6 +517,19 @@ yield(void)
   p->state = RUNNABLE;
   sched();
   release(&p->lock);
+}
+
+// let a process set its priority
+int
+setpri(int num)
+{
+  struct proc *p = myproc();
+  // return on invalid priorities
+  if (!((num == 1) || (num == 2))) {
+    return -1;
+  }
+  p->priority = num;
+  return 0;
 }
 
 // A fork child's very first scheduling by scheduler()
