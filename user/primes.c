@@ -2,7 +2,7 @@
 #include "user/user.h"
 
 #pragma GCC diagnostic ignored "-Winfinite-recursion"
-void child(int read_pipe, int n) {
+void child(int read_pipe) {
     int num = 0;
     if (read(read_pipe, &num, sizeof(int)) != sizeof(int)) exit(0);
     int p = num;
@@ -15,7 +15,7 @@ void child(int read_pipe, int n) {
     if (pid == 0) { // if child
         close(read_pipe);
         close(c_to_c[1]);
-        child(c_to_c[0], n);
+        child(c_to_c[0]);
         exit(0);
     } else {
         close(c_to_c[0]);
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 
     if (pid == 0) { // if child
         close(p_to_c[1]);
-        child(p_to_c[0], n);
+        child(p_to_c[0]);
     } else {
         close(p_to_c[0]);
         for (int i = 2; i <= n; i++) {
