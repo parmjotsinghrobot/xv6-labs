@@ -519,19 +519,6 @@ yield(void)
   release(&p->lock);
 }
 
-// let a process set its priority
-int
-setpri(int num)
-{
-  struct proc *p = myproc();
-  // return on invalid priorities
-  if (!((num == 1) || (num == 2))) {
-    return -1;
-  }
-  p->priority = num;
-  return 0;
-}
-
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.
 void

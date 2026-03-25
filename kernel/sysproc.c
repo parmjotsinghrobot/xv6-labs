@@ -97,3 +97,19 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// let a process set its priority
+uint64
+sys_setpri(void)
+{
+  int num;
+  argint(0, &num);
+
+  struct proc *p = myproc();
+  // return on invalid priorities
+  if (!((num == 1) || (num == 2))) {
+    return -1;
+  }
+  p->priority = num;
+  return 0;
+}
