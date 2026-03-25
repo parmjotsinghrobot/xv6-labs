@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "pstat.h"
 
 struct cpu cpus[NCPU];
 
@@ -711,4 +712,23 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+int
+getpinfo(struct pstat *pstat) {
+  struct proc *p;
+  memset(pstat, 0, sizeof(*pstat));
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state != UNUSED) {
+      int i = p - proc;
+      pstat->inuse[i]    = 1;
+      pstat->pid[i]      = p->pid;
+      pstat->priority[i] = p->priority;
+      pstat->ticks[i][1] = p->ticks[1];
+      pstat->ticks[i][2] = p->ticks[2];
+    }
+    release(&p->lock);
+  }
+  return 0;
 }

@@ -2,6 +2,7 @@
 #include "riscv.h"
 #include "defs.h"
 #include "param.h"
+#include "pstat.h"
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
@@ -115,6 +116,21 @@ sys_setpri(void)
   acquire(&p->lock);
   p->priority = num;
   release(&p->lock);
+
+  return 0;
+}
+
+// get a process's info
+uint64
+sys_getpinfo(void) {
+  uint64 addr;
+  struct pstat pstat;
+  argaddr(0, &addr);
+  if (addr == 0) return -1;
+  if (getpinfo(&pstat)) return -1;
+
+  if(copyout(myproc()->pagetable, addr, (char *)&pstat, sizeof(pstat)) < 0)
+    return -1;
 
   return 0;
 }
