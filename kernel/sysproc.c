@@ -102,19 +102,19 @@ sys_uptime(void)
 uint64
 sys_setpri(void)
 {
-  acquire(&tickslock);
   int num;
   argint(0, &num);
 
   // return on invalid priorities
   if (!((num == 1) || (num == 2))) {
-    release(&tickslock);
     return -1;
   }
 
   struct proc *p = myproc();
-  p->priority = num;
 
-  release(&tickslock);
+  acquire(&p->lock);
+  p->priority = num;
+  release(&p->lock);
+
   return 0;
 }

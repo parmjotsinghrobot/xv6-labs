@@ -170,6 +170,7 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  p->priority = 0;
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -435,49 +436,62 @@ wait(uint64 addr)
   }
 }
 
-// Per-CPU process scheduler.
-// Each CPU calls scheduler() after setting itself up.
-// Scheduler never returns.  It loops, doing:
-//  - choose a process to run.
-//  - swtch to start running that process.
-//  - eventually that process transfers control
-//    via swtch back to the scheduler.
-void
-scheduler(void)
+// next process position to check to ensure fair scheduling
+static int next_high = 0;
+static int next_low = 0;
+
+int
+run_prio(int pri)
 {
   struct proc *p;
   struct cpu *c = mycpu();
+  int found = 0;
+  for(int n = 0; n < NPROC; n++) {
+    int idx;
+    if (pri == 2) idx = (n + next_high) % NPROC;
+    else idx = (n + next_low) % NPROC;
 
-  c->proc = 0;
+    p = &proc[idx];
+    acquire(&p->lock);
+    if((p->state == RUNNABLE) && (p->priority >= pri)) { // if low, look for high jobs as well
+      // Switch to chosen process.  It is the process's job
+      // to release its lock and then reacquire it
+      // before jumping back to us.
+      p->state = RUNNING;
+      c->proc = p;
+      swtch(&c->context, &p->context);
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+      found = 1;
+
+      // increment the proc pointers
+      if (pri == 2) next_high = (idx + 1) % NPROC;
+      else next_low = (idx + 1) % NPROC;
+    }
+    release(&p->lock);
+  }
+  return found;
+}
+
+void
+scheduler(void)
+{
   for(;;){
     // The most recent process to run may have had interrupts
     // turned off; enable them to avoid a deadlock if all
     // processes are waiting.
     intr_on();
 
-    int found = 0;
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
+    // find processes with a high priority and run them
+    if (run_prio(2)) continue;
+    // else run processes with a low priority
+    if (run_prio(1)) continue;
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        found = 1;
-      }
-      release(&p->lock);
-    }
-    if(found == 0) {
-      // nothing to run; stop running on this core until an interrupt.
-      intr_on();
-      asm volatile("wfi");
-    }
+    // nothing to run; stop running on this core until an interrupt.
+    intr_on();
+    asm volatile("wfi");
   }
 }
 
