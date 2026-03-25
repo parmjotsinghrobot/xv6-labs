@@ -105,4 +105,5 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   int priority;                // Process priority (low: 1, high: 2)
+  int ticks[3];                // measure how many ticks been running at each prio
 };

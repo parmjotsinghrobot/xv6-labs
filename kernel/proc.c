@@ -125,6 +125,8 @@ found:
   p->pid = allocpid();
   p->state = USED;
   p->priority = 1;
+  p->ticks[1] = 0;
+  p->ticks[2] = 0;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -171,6 +173,8 @@ freeproc(struct proc *p)
   p->xstate = 0;
   p->state = UNUSED;
   p->priority = 0;
+  p->ticks[1] = 0;
+  p->ticks[2] = 0;
 }
 
 // Create a user page table for a given process, with no user memory,
