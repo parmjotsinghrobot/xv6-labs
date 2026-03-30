@@ -5,14 +5,14 @@ from gradelib import *
 
 r = Runner(save("xv6.out"))
 
-@test(1, "sleep")
+@test(3, "sleep")
 def test_sleep():
     r.run_qemu(shell_script([
         'sleep 10'
     ]))
     r.match(no=["exec .* failed", "$ sleep\n$"])
 
-@test(6, "pingpong")
+@test(3, "pingpong")
 def test_pingpong_children():
     r.run_qemu(shell_script([
         'pingpong',
@@ -20,7 +20,7 @@ def test_pingpong_children():
     ]))
     r.match('^OK$')
 
-@test(8, "findppid, depth 5")
+@test(3, "findppid, depth 5")
 def test_findppid_5():
     r.run_qemu(shell_script([
         'findppid 5',
@@ -37,7 +37,7 @@ def test_findppid_5():
     ]
     r.match(*args)
 
-@test(6, "primes, 20")
+@test(1, "primes, 20")
 def test_primes_20():
     r.run_qemu(shell_script([
         'primes 20',
@@ -67,7 +67,7 @@ def test_primes_200():
     args.append('^OK$')
     r.match(*args)
 
-@test(8, "primes_sum, 20")
+@test(1, "primes_sum, 20")
 def test_primes_sum_20():
     r.run_qemu(shell_script([
         'primes_sum 30',
@@ -108,7 +108,7 @@ def test_primes_sum_200():
 # T4: getpinfo(0)   returns -1 (null pointer)
 # T5: new process has default priority 1
 
-@test(10, "schedule, getpinfo")
+@test(5, "schedule, getpinfo")
 def test_schedule_getpinfo():
     r.run_qemu(shell_script([
         'schedtest',
@@ -155,7 +155,7 @@ def test_schedule_setpri():
 # T7a: ticks[2] increases when process runs at pri=2
 # T7b: ticks[1] does not increase while process is at pri=2
 
-@test(15, "schedule, priority scheduler")
+@test(10, "schedule, priority scheduler")
 def test_schedule_priority():
     r.run_qemu(shell_script([
         'schedtest',

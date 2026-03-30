@@ -101,18 +101,23 @@ static void
 test_priority_order(void)
 {
   int sync[2];   // parent → children: "go" signal
+  int ready[2];
   int done[2];   // children → parent: completion order
 
   pipe(sync);
+  pipe(ready);
   pipe(done);
 
   int pid_lo = fork();
   if(pid_lo == 0){
-    // low-priority child: stay at pri=1
-    close(sync[1]);
-    close(done[0]);
+    close(sync[1]); close(ready[0]); close(done[0]);
+    // Signal ready (still pri=1)
+    char r = 1;
+    write(ready[1], &r, 1);
+    close(ready[1]);
+    // Block until go
     char go;
-    read(sync[0], &go, 1);   // wait for parent's signal
+    read(sync[0], &go, 1);
     close(sync[0]);
     burn(20);
     int me = getpid();
@@ -123,12 +128,15 @@ test_priority_order(void)
 
   int pid_hi = fork();
   if(pid_hi == 0){
-    // high-priority child: raise to pri=2 BEFORE waiting for go
     setpri(2);
-    close(sync[1]);
-    close(done[0]);
+    close(sync[1]); close(ready[0]); close(done[0]);
+    // Signal ready (now pri=2)
+    char r = 1;
+    write(ready[1], &r, 1);
+    close(ready[1]);
+    // Block until go
     char go;
-    read(sync[0], &go, 1);   // wait for parent's signal
+    read(sync[0], &go, 1);
     close(sync[0]);
     burn(20);
     int me = getpid();
@@ -137,15 +145,21 @@ test_priority_order(void)
     exit(0);
   }
 
-  // Parent: close unused ends, fire the go signal to both children.
-  close(sync[0]);
-  close(done[1]);
+  // Parent: wait until both children have set their priority
+  close(sync[0]); close(ready[1]); close(done[1]);
+  char r;
+  read(ready[0], &r, 1);  // wait for child 1 ready
+  read(ready[0], &r, 1);  // wait for child 2 ready
+  close(ready[0]);
+
+  // Both children have called setpri and are about to block on sync.
+  // Fire go — they will both become RUNNABLE with pid_hi at pri=2.
   char go = 1;
-  write(sync[1], &go, 1);   // wake up pid_lo
-  write(sync[1], &go, 1);   // wake up pid_hi
+  write(sync[1], &go, 1);
+  write(sync[1], &go, 1);
   close(sync[1]);
 
-  // Read completion order.
+  // Read completion order
   int first = 0, second = 0;
   read(done[0], &first,  sizeof(first));
   read(done[0], &second, sizeof(second));
